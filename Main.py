@@ -39,7 +39,7 @@ while True:
         small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-        rgb_small_frame = small_frame[:, :, ::-1]
+        rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
         
         # Find all the faces and face encodings in the current frame of video
         face_locations = face_recognition.face_locations(rgb_small_frame)
@@ -79,8 +79,8 @@ while True:
                 face_center_y = (top + bottom) / 2
 
                 # Calculate vector from frame center to face center
-                vector_x = face_center_x - frame_center_x
-                vector_y = face_center_y - frame_center_y
+                vector_x = frame_center_x - face_center_x
+                vector_y = frame_center_y - face_center_y
 
                 # Calculate magnitude (distance)
                 magnitude = np.sqrt(vector_x**2 + vector_y**2)
