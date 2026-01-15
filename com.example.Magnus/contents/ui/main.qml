@@ -26,40 +26,59 @@ PlasmoidItem {
         onTriggered: readVectorFile()
     }
     
-    function readVectorFile() {
-        readCount++
-        
-        var xhr = new XMLHttpRequest()
-        var fileUrl = "file://" + vectorFile
-        
-        xhr.open("GET", fileUrl)
-        
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 0 || xhr.status === 200) {
-                    if (xhr.responseText !== "") {
-                        try {
-                            var data = JSON.parse(xhr.responseText)
-                            // Support both old single vector format and new multiple vectors format
-                            if (data.vectors) {
-                                vectors = data.vectors
-                            } else if (data.vector) {
-                                // Backwards compatibility with single vector
-                                vectors = [{
-                                    x: data.vector.x,
-                                    y: data.vector.y,
-                                    name: "Vector",
-                                    magnitude: 0
-                                }]
+function readVectorFile() {
+    readCount++
+    
+    var xhr = new XMLHttpRequest()
+    var fileUrl = "file://" + vectorFile
+    
+    xhr.open("GET", fileUrl)
+    
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr. status === 0 || xhr. status === 200) {
+                if (xhr.responseText !== "") {
+                    try {
+                        var data = JSON.parse(xhr.responseText)
+                        var newVectors = []
+                        
+                        if (data.vectors && Array.isArray(data.vectors)) {
+                            // Create a deep copy to force property change
+                            for (var i = 0; i < data.vectors.length; i++) {
+                                newVectors.push({
+                                    x: parseFloat(data.vectors[i]. x) || 0,
+                                    y: parseFloat(data.vectors[i].y) || 0,
+                                    name: data.vectors[i].name || "Vector",
+                                    magnitude:  parseFloat(data.vectors[i].magnitude) || 0
+                                })
                             }
-                        } catch (e) {}
+                        } else if (data.vector) {
+                            newVectors = [{
+                                x: parseFloat(data.vector.x) || 0,
+                                y: parseFloat(data.vector. y) || 0,
+                                name: "Vector",
+                                magnitude: 0
+                            }]
+                        }
+                        
+                        // Force property change by assigning new array
+                        vectors = newVectors
+                        console.log("Updated vectors:", vectors. length, JSON.stringify(vectors))
+                        
+                    } catch (e) {
+                        console.log("JSON parse error:", e)
                     }
+                } else {
+                    console.log("Empty response text")
                 }
+            } else {
+                console.log("XHR failed with status:", xhr.status)
             }
         }
-        
-        xhr.send()
     }
+    
+    xhr.send()
+}
     
     compactRepresentation: Item {
         Layout.preferredWidth: label.implicitWidth + Kirigami.Units.smallSpacing * 2

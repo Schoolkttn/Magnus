@@ -1,0 +1,11 @@
+[SddmGreeterTheme]
+Name=Magnus
+Author=Xpldr
+Type=sddm-theme
+Version=0.1
+MainScript=Main.qml
+ConfigFile=theme.conf
+TranslationsDirectory=translations
+Theme-Id=magnus
+Theme-API=2.0
+QtVersion=6
