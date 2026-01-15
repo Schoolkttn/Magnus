@@ -63,36 +63,43 @@ while True:
                 name = known_face_names[best_match_index]
 
             face_names.append(name)
-        
-        # Output vectors towards known faces (only when face detection runs)
-        for (top, right, bottom, left), name in zip(face_locations, face_names):
-            # Only output vectors for known faces (not "Unknown")
-            if name != "Unknown":
-                # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-                top *= 4
-                right *= 4
-                bottom *= 4
-                left *= 4
-
-                # Calculate the center of the face
-                face_center_x = (left + right) / 2
-                face_center_y = (top + bottom) / 2
-
-                # Calculate vector from frame center to face center
-                vector_x = frame_center_x - face_center_x
-                vector_y = frame_center_y - face_center_y
-
-                # Calculate magnitude (distance)
-                magnitude = np.sqrt(vector_x**2 + vector_y**2)
-
-                # Output the vector information
-                print(f"Known face '{name}' detected:")
-                print(f"  Position: ({face_center_x:.1f}, {face_center_y:.1f})")
-                print(f"  Vector from center: ({vector_x:.1f}, {vector_y:.1f})")
-                print(f"  Distance from center: {magnitude:.1f} pixels")
-                print()
-
     process_this_frame = not process_this_frame
+
+        # Output vectors towards known faces (only when face detection runs)
+    for (top, right, bottom, left), name in zip(face_locations, face_names):
+        # Scale back up face locations since the frame we detected in was scaled to 1/4 size
+        top *= 4
+        right *= 4
+        bottom *= 4
+        left *= 4
+
+        # Calculate the center of the face
+        face_center_x = (left + right) / 2
+        face_center_y = (top + bottom) / 2
+
+        # Calculate vector from frame center to face center
+        vector_x = frame_center_x - face_center_x
+        vector_y = frame_center_y - face_center_y
+
+        # Calculate magnitude (distance)
+        magnitude = np.sqrt(vector_x**2 + vector_y**2)
+
+        # Output the vector information
+        print(f"Known face '{name}' detected:")
+        print(f"  Position: ({face_center_x:.1f}, {face_center_y:.1f})")
+        print(f"  Vector from center: ({vector_x:.1f}, {vector_y:.1f})")
+        print(f"  Distance from center: {magnitude:.1f} pixels")
+        print()
+        # Draw a box around the face
+        cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+
+        # Draw a label with a name below the face
+        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+        font = cv2.FONT_HERSHEY_DUPLEX
+        cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+
+    # Display the resulting image
+    cv2.imshow('Video', frame)
 
     # Hit 'q' on the keyboard to quit!
     if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -100,3 +107,4 @@ while True:
 
 # Release handle to the webcam
 video_capture.release()
+cv2.destroyAllWindows()
