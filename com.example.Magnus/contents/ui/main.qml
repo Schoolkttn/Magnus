@@ -7,8 +7,7 @@ import org.kde.kirigami as Kirigami
 PlasmoidItem {
     id: root
     
-    property real vectorX: 0
-    property real vectorY: 0
+    property var vectors: []
     property string vectorFile: ""
     property int readCount: 0
     
@@ -41,9 +40,17 @@ PlasmoidItem {
                     if (xhr.responseText !== "") {
                         try {
                             var data = JSON.parse(xhr.responseText)
-                            if (data.vector) {
-                                vectorX = data.vector.x
-                                vectorY = data.vector.y
+                            // Support both old single vector format and new multiple vectors format
+                            if (data.vectors) {
+                                vectors = data.vectors
+                            } else if (data.vector) {
+                                // Backwards compatibility with single vector
+                                vectors = [{
+                                    x: data.vector.x,
+                                    y: data.vector.y,
+                                    name: "Vector",
+                                    magnitude: 0
+                                }]
                             }
                         } catch (e) {}
                     }
@@ -64,14 +71,22 @@ PlasmoidItem {
             hoverEnabled: true
             
             PlasmaComponents.ToolTip {
-                text: "2D Vector Monitor\nX: " + vectorX + "\nY:  " + vectorY + "\nReads: " + readCount
+                text: {
+                    var tooltip = "2D Vector Monitor\n"
+                    tooltip += "Vectors: " + vectors.length + "\n"
+                    for (var i = 0; i < vectors.length; i++) {
+                        tooltip += vectors[i].name + ": (" + vectors[i].x.toFixed(1) + ", " + vectors[i].y.toFixed(1) + ")\n"
+                    }
+                    tooltip += "Reads: " + readCount
+                    return tooltip
+                }
             }
         }
         
         PlasmaComponents.Label {
             id: label
             anchors.centerIn: parent
-            text: "(" + vectorX + ", " + vectorY + ")"
+            text: "Vectors: " + vectors.length
         }
     }
     
@@ -95,19 +110,11 @@ PlasmoidItem {
                 rowSpacing: Kirigami.Units.smallSpacing
                 
                 PlasmaComponents.Label {
-                    text: "X:"
+                    text: "Vectors:"
                     font.bold: true
                 }
                 PlasmaComponents.Label {
-                    text: vectorX
-                }
-                
-                PlasmaComponents.Label {
-                    text: "Y:"
-                    font.bold: true
-                }
-                PlasmaComponents.Label {
-                    text: vectorY
+                    text: vectors.length
                 }
                 
                 PlasmaComponents.Label {
@@ -142,16 +149,102 @@ PlasmoidItem {
                 border.width: 1
                 radius: Kirigami.Units.smallSpacing
                 
+                // Center point
                 Rectangle {
-                    width:  Kirigami.Units.gridUnit
-                    height: Kirigami.Units.gridUnit
+                    width: Kirigami.Units.gridUnit * 0.5
+                    height: Kirigami.Units.gridUnit * 0.5
                     radius: width / 2
-                    color: Kirigami.Theme.highlightColor
-                    x: (parent.width / 100) * vectorX - width / 2
-                    y: (parent.height / 100) * vectorY - height / 2
+                    color: Kirigami.Theme.textColor
+                    x: parent.width / 2 - width / 2
+                    y: parent.height / 2 - height / 2
+                }
+                
+                // Repeater to create multiple arrows for each vector
+                Repeater {
+                    model: vectors.length
                     
-                    Behavior on x { NumberAnimation { duration: 200 } }
-                    Behavior on y { NumberAnimation { duration: 200 } }
+                    delegate: Item {
+                        anchors.fill: parent
+                        
+                        property var vectorData: vectors[index]
+                        property real centerX: parent.width / 2
+                        property real centerY: parent.height / 2
+                        property real scale: Math.min(parent.width, parent.height) / 200
+                        
+                        // Arrow line
+                        Rectangle {
+                            id: arrowLine
+                            width: Math.sqrt(Math.pow(vectorData.x * scale, 2) + Math.pow(vectorData.y * scale, 2))
+                            height: 2
+                            color: vectorData.name === "Known" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
+                            
+                            x: centerX
+                            y: centerY
+                            
+                            transformOrigin: Item.Left
+                            rotation: -Math.atan2(vectorData.y, -vectorData.x) * 180 / Math.PI
+                            
+                            Behavior on rotation { NumberAnimation { duration: 200 } }
+                            Behavior on width { NumberAnimation { duration: 200 } }
+                        }
+                        
+                        // Arrow head (triangle)
+                        Canvas {
+                            id: arrowHead
+                            width: 20
+                            height: 20
+                            
+                            property real endX: centerX - vectorData.x * scale
+                            property real endY: centerY - vectorData.y * scale
+                            
+                            x: endX - width / 2
+                            y: endY - height / 2
+                            
+                            Behavior on x { NumberAnimation { duration: 200 } }
+                            Behavior on y { NumberAnimation { duration: 200 } }
+                            
+                            onPaint: {
+                                var ctx = getContext("2d")
+                                ctx.reset()
+                                
+                                ctx.fillStyle = vectorData.name === "Known" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
+                                
+                                var angle = -Math.atan2(vectorData.y, -vectorData.x)
+                                
+                                ctx.save()
+                                ctx.translate(width / 2, height / 2)
+                                ctx.rotate(angle)
+                                
+                                ctx.beginPath()
+                                ctx.moveTo(8, 0)
+                                ctx.lineTo(-4, -6)
+                                ctx.lineTo(-4, 6)
+                                ctx.closePath()
+                                ctx.fill()
+                                
+                                ctx.restore()
+                            }
+                            
+                            Connections {
+                                target: root
+                                function onVectorsChanged() {
+                                    arrowHead.requestPaint()
+                                }
+                            }
+                        }
+                        
+                        // Label
+                        PlasmaComponents.Label {
+                            x: centerX - vectorData.x * scale - width / 2
+                            y: centerY - vectorData.y * scale - height - 5
+                            text: vectorData.name
+                            color: vectorData.name === "Known" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
+                            font.pixelSize: Kirigami.Units.gridUnit * 0.7
+                            
+                            Behavior on x { NumberAnimation { duration: 200 } }
+                            Behavior on y { NumberAnimation { duration: 200 } }
+                        }
+                    }
                 }
             }
         }

@@ -29,6 +29,27 @@ class VectorWriter:
         # Set permissions so plasmoid can read
         os.chmod(self.output_file, 0o644)
     
+    def write_vectors(self, vectors):
+        """Write multiple 2D vectors to JSON file
+        
+        Args:
+            vectors: List of dictionaries with 'x', 'y', 'name', and optionally other metadata
+        """
+        data = {
+            "vectors": vectors,
+            "timestamp": time.time()
+        }
+        
+        # Write atomically to prevent reading corrupted data
+        temp_file = self.output_file.with_suffix('.tmp')
+        with open(temp_file, 'w') as f:
+            json.dump(data, f, indent=2)
+        
+        # Atomic rename
+        temp_file.replace(self.output_file)
+        # Set permissions so plasmoid can read
+        os.chmod(self.output_file, 0o644)
+    
     def run(self, update_interval=1.0):
         """Main loop - replace with your actual vector generation logic"""
         counter = 0

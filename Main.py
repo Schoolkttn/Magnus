@@ -1,6 +1,12 @@
 import face_recognition
 import cv2
 import numpy as np
+from vector import VectorWriter
+import os
+
+# Initialize vector writer
+output_file = os.path.expanduser("~/.local/share/vector_data/vector.json")
+vector_writer = VectorWriter(output_file)
 
 # Get a reference to webcam #0 (the default one)
 video_capture = cv2.VideoCapture(0)
@@ -66,6 +72,8 @@ while True:
     process_this_frame = not process_this_frame
 
         # Output vectors towards known faces (only when face detection runs)
+    # Collect all vectors for JSON output
+    vectors = []
     for (top, right, bottom, left), name in zip(face_locations, face_names):
         # Scale back up face locations since the frame we detected in was scaled to 1/4 size
         top *= 4
@@ -83,9 +91,21 @@ while True:
 
         # Calculate magnitude (distance)
         magnitude = np.sqrt(vector_x**2 + vector_y**2)
+        
+        # Add vector to list
+        vectors.append({
+            "x": float(vector_x),
+            "y": float(vector_y),
+            "name": name,
+            "magnitude": float(magnitude),
+            "position": {
+                "x": float(face_center_x),
+                "y": float(face_center_y)
+            }
+        })
 
         # Output the vector information
-        print(f"Known face '{name}' detected:")
+        print(f"Face '{name}' detected:")
         print(f"  Position: ({face_center_x:.1f}, {face_center_y:.1f})")
         print(f"  Vector from center: ({vector_x:.1f}, {vector_y:.1f})")
         print(f"  Distance from center: {magnitude:.1f} pixels")
@@ -97,6 +117,10 @@ while True:
         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
         cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+    
+    # Write all vectors to JSON file
+    if vectors:
+        vector_writer.write_vectors(vectors)
 
     # Display the resulting image
     cv2.imshow('Video', frame)
