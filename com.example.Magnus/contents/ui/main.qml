@@ -170,19 +170,21 @@ PlasmoidItem {
                         property real centerX: parent.width / 2
                         property real centerY: parent.height / 2
                         property real scale: Math.min(parent.width, parent.height) / 200
+                        property real vectorAngle: -Math.atan2(vectorData.y, -vectorData.x)
+                        property color vectorColor: vectorData.name === "Known" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
                         
                         // Arrow line
                         Rectangle {
                             id: arrowLine
                             width: Math.sqrt(Math.pow(vectorData.x * scale, 2) + Math.pow(vectorData.y * scale, 2))
                             height: 2
-                            color: vectorData.name === "Known" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
+                            color: parent.vectorColor
                             
                             x: centerX
                             y: centerY
                             
                             transformOrigin: Item.Left
-                            rotation: -Math.atan2(vectorData.y, -vectorData.x) * 180 / Math.PI
+                            rotation: parent.vectorAngle * 180 / Math.PI
                             
                             Behavior on rotation { NumberAnimation { duration: 200 } }
                             Behavior on width { NumberAnimation { duration: 200 } }
@@ -207,13 +209,11 @@ PlasmoidItem {
                                 var ctx = getContext("2d")
                                 ctx.reset()
                                 
-                                ctx.fillStyle = vectorData.name === "Known" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
-                                
-                                var angle = -Math.atan2(vectorData.y, -vectorData.x)
+                                ctx.fillStyle = parent.vectorColor
                                 
                                 ctx.save()
                                 ctx.translate(width / 2, height / 2)
-                                ctx.rotate(angle)
+                                ctx.rotate(parent.vectorAngle)
                                 
                                 ctx.beginPath()
                                 ctx.moveTo(8, 0)
@@ -238,7 +238,7 @@ PlasmoidItem {
                             x: centerX - vectorData.x * scale - width / 2
                             y: centerY - vectorData.y * scale - height - 5
                             text: vectorData.name
-                            color: vectorData.name === "Known" ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.neutralTextColor
+                            color: parent.vectorColor
                             font.pixelSize: Kirigami.Units.gridUnit * 0.7
                             
                             Behavior on x { NumberAnimation { duration: 200 } }
