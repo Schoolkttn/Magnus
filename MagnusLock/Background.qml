@@ -1,9 +1,3 @@
-/*
-    SPDX-FileCopyrightText: 2016 Boudhayan Gupta <bgupta@kde.org>
-
-    SPDX-License-Identifier: LGPL-2.0-or-later
-*/
-
 import QtQuick 2.15
 
 FocusScope {

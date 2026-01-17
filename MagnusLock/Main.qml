@@ -1,4 +1,5 @@
 import QtQuick 2.15
+import QtQuick.Shapes 1.10
 import QtQuick.Layouts 1.15
 import QtQuick.Controls 2.15 as QQC2
 import Qt5Compat.GraphicalEffects
@@ -96,40 +97,14 @@ Item {
                 }
             }
         }
-        WallpaperFader {
-            visible: config.type === "image"
-            anchors.fill: parent
-            state: loginScreenRoot.uiVisible ? "on" : "off"
-            source: wallpaper
-            mainStack: mainStack
-            footer: footer
-            clock: clock
-        }
-
-        DropShadow {
-            id: clockShadow
-            anchors.fill: clock
-            source: clock
-            visible: !softwareRendering && config.showClock === "true"
-            radius: 7
-            verticalOffset: 0.8
-            samples: 15
-            spread: 0.2
-            color : Qt.rgba(0, 0, 0, 0.7)
-            opacity: loginScreenRoot.uiVisible ? 0 : 1
-            Behavior on opacity {
-                OpacityAnimator {
-                    duration: Kirigami.Units.veryLongDuration * 2
-                    easing.type: Easing.InOutQuad
-                }
-            }
-        }
 
         QQC2.StackView {
             id: mainStack
             anchors {
                 left: parent.left
                 right: parent.right
+                top: parent.top          
+                topMargin: 180
             }
             height: root.height + Kirigami.Units.gridUnit * 3
 
@@ -176,7 +151,7 @@ Item {
                         return false
                     }
 
-                    return userListModel.count <= userListModel.disableAvatarsThreshold
+                    return false
                 }
 
                 notificationMessage: {
@@ -193,31 +168,22 @@ Item {
                 actionItemsVisible: !inputPanel.keyboardActive
                 actionItems: [
                     ActionButton {
-                        icon.name: "system-hibernate"
-                        text: i18ndc("plasma-desktop-sddm-theme", "Suspend to disk", "Hibernate")
-                        onClicked: sddm.hibernate()
-                        enabled: sddm.canHibernate
-                    },
-                    ActionButton {
-                        icon.name: "system-suspend"
-                        text: i18ndc("plasma-desktop-sddm-theme", "Suspend to RAM", "Sleep")
-                        onClicked: sddm.suspend()
-                        enabled: sddm.canSuspend
-                    },
-                    ActionButton {
                         icon.name: "system-reboot"
+                        icon.color: "#15181d"
                         text: i18nd("plasma-desktop-sddm-theme", "Restart")
                         onClicked: sddm.reboot()
                         enabled: sddm.canReboot
                     },
                     ActionButton {
                         icon.name: "system-shutdown"
+                        icon.color: "#15181d"
                         text: i18nd("plasma-desktop-sddm-theme", "Shut Down")
                         onClicked: sddm.powerOff()
                         enabled: sddm.canPowerOff
                     },
                     ActionButton {
                         icon.name: "system-user-prompt"
+                        icon.color: "#15181d"
                         text: i18ndc("plasma-desktop-sddm-theme", "For switching to a username and password prompt", "Other…")
                         onClicked: mainStack.push(userPromptComponent)
                         visible: !userListComponent.showUsernamePrompt
@@ -523,5 +489,29 @@ Item {
         id: notificationResetTimer
         interval: 3000
         onTriggered: notificationMessage = ""
+    }
+
+    Rectangle {
+        id: centerCircle
+        width: 450                     // Circle diameter
+        height: 450
+        radius: width / 2              // Makes it circular (half the width)
+        color: '#000000'
+        border.color: "#32792a"        // Border color
+        border.width: 5                // Border thickness
+        
+        anchors.centerIn: parent       // Centers it on screen
+        
+        // Optional: Add transparency
+        // opacity: 0.8                   // 0.0 = invisible, 1.0 = solid
+        
+        Image {
+            id: magnusEye
+            source: "eyes/magnuseye_red.svg"  // Local file or URL
+            rotation: 0  // Degrees
+            width: 189
+            height: 110
+            anchors.centerIn: parent
+        }
     }
 }

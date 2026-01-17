@@ -4,16 +4,26 @@ import numpy as np
 from vector import VectorWriter
 import os
 import time
+from pathlib import Path
+from systemd import journal
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(journal.JournaldLogHandler())
 
 def initialize_vector_writer():
     """Initialize and return the vector writer."""
-    output_file = os.path.expanduser("~/.local/share/vector_data/vector.json")
+    output_file = "/home/Add_Later/.local/share/vector_data/vector.json"
     return VectorWriter(output_file)
+    
 
 def load_known_faces():
     """Load known faces and return encodings and names."""
     # Load a sample picture and learn how to recognize it.
-    known_image = face_recognition.load_image_file("known.jpg")
+    script_dir = Path(__file__).parent
+    image_path = script_dir / "known.jpg"
+    known_image = face_recognition.load_image_file(str(image_path))
     known_face_encoding = face_recognition.face_encodings(known_image)[0]
     
     # Create arrays of known face encodings and their names
@@ -78,10 +88,10 @@ def capture_and_recognize_faces(video_capture, known_face_encodings, known_face_
     vectors = []
     for (top, right, bottom, left), name in zip(face_locations, face_names):
         # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-        top *= 4
-        right *= 4
-        bottom *= 4
-        left *= 4
+        top *= 1
+        right *= 1
+        bottom *= 1
+        left *= 1
         
         # Calculate the center of the face
         face_center_x = (left + right) / 2
@@ -118,9 +128,11 @@ def main():
         )
         
         if frame is not None:
-            print(f"Detected {len(face_names)} face(s)")
+            print(f"magnus.service: Detected {len(face_names)} face(s)")
+            logger.info(f"magnus.service: Detected {len(face_names)} face(s)")
             for name, vector in zip(face_names, vectors):
-                print(f"Face:  {name}, Vector: ({vector['x']:.2f}, {vector['y']:.2f})")
+                print(f"magnus.service: Face:  {name}, Vector: ({vector['x']:.2f}, {vector['y']:.2f})")
+                logger.info(f"magnus.service: Face:  {name}, Vector: ({vector['x']:.2f}, {vector['y']:.2f})")
             
             # Write vectors to file if needed
             if vectors:
@@ -129,7 +141,13 @@ def main():
     finally:
         cleanup_camera(video_capture)
 
-if __name__ == "__main__":
+
+print("magnus.service initialized")
+logger.info("magnus.service initialized")
+try:    
     while True:
         main()
-        time.sleep(1)
+        time.sleep(0.5)
+except KeyboardInterrupt:
+    print("\n magnus.service terminated by user.")
+    logger.info("magnus.service terminated by user")

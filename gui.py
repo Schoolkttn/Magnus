@@ -77,10 +77,10 @@ while True:
     vectors = []
     for (top, right, bottom, left), name in zip(face_locations, face_names):
         # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-        top *= 4
-        right *= 4
-        bottom *= 4
-        left *= 4
+        top *= 1
+        right *= 1
+        bottom *= 1
+        left *= 1
 
         # Calculate the center of the face
         face_center_x = (left + right) / 2
@@ -95,20 +95,17 @@ while True:
         
         # Add vector to list
         vectors.append({
-            "x": float(vector_x),
+            "x": float(-vector_x),
             "y": float(vector_y),
             "name": name,
             "magnitude": float(magnitude),
-            "position": {
-                "x": float(face_center_x),
-                "y": float(face_center_y)
-            }
         })
 
         # Output the vector information
         print(f"Face '{name}' detected:")
         print(f"  Position: ({face_center_x:.1f}, {face_center_y:.1f})")
         print(f"  Vector from center: ({vector_x:.1f}, {vector_y:.1f})")
+        print(f"  Center: ({frame_center_x:.1f}, {frame_center_y:.1f})")
         print(f"  Distance from center: {magnitude:.1f} pixels")
         print()
         # Draw a box around the face
