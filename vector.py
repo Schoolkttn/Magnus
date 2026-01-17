@@ -19,11 +19,9 @@ class VectorWriter:
         temp_file = self.output_file.with_suffix('.tmp')
         with open(temp_file, 'w') as f:
             json.dump(data, f, indent=2)
-        
+        os.chmod(temp_file, 0o777)
         # Atomic rename
         temp_file.replace(self.output_file)
-        # Set permissions so plasmoid can read
-        os.chmod(self.output_file, 0o644)
     
     def write_vector(self, x, y):
         """Write a 2D vector to JSON file"""
@@ -48,25 +46,5 @@ class VectorWriter:
         }
         self._atomic_write(data)
     
-    def run(self, update_interval=1.0):
-        """Main loop - replace with your actual vector generation logic"""
-        counter = 0
-        while True:
-            # Example:  generate some vector data
-            # Replace this with your actual vector calculation
-            x = counter % 100
-            y = (counter * 2) % 100
-            
-            self.write_vector(x, y)
-            print(f"Written vector: ({x}, {y})")
-            
-            time.sleep(update_interval)
-            counter += 1
-
-if __name__ == "__main__": 
-    # Use a location accessible to both the service and plasmoid
-    output_file = os.path.expanduser("~/.local/share/vector_data/vector.json")
-    
-    writer = VectorWriter(output_file)
-    print(f"Writing vectors to {output_file}")
-    writer.run()
+    def write_empty(self):
+        self._atomic_write([{}])

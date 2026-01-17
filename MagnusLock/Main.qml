@@ -25,12 +25,108 @@ Item {
 
     property string notificationMessage
 
+    property var vectors: []                    // Stores the vector data
+    property string vectorFile:  ""              // Path to the JSON file
+    property int readCount: 0                   // How many times we've read the file
+    property bool fileReaderActive: true        // Control the file reader
+
+    property var closestVector: {
+        if (vectors.length === 0) {
+            return null
+        }
+        
+        var closest = vectors[0]
+        for (var i = 1; i < vectors.length; i++) {
+            if (vectors[i].magnitude < closest.magnitude) {
+                closest = vectors[i]
+            }
+        }
+        return closest
+    }
+
     LayoutMirroring.enabled: Qt.application.layoutDirection === Qt.RightToLeft
     LayoutMirroring.childrenInherit: true
 
     KeyboardIndicator.KeyState {
         id: capsLockState
         key: Qt.Key_CapsLock
+    }
+
+    Component.onCompleted: {
+        // Set the path to your vector file
+        vectorFile = "/tmp/vector.json"
+        console.log("MagnusLock:  Initialized with vector file:", vectorFile)
+        readVectorFile()  // Do initial read
+    }
+
+    Timer {
+        id: fileReader
+        interval: 1000                          // Read every 1000ms (1 second)
+        running: root.fileReaderActive          // Only run if active
+        repeat: true                            // Keep repeating
+        onTriggered:  readVectorFile()           // Call the read function
+    }
+
+    function readVectorFile() {
+        readCount++
+        
+        // Create XMLHttpRequest to read file
+        var xhr = new XMLHttpRequest()
+        var fileUrl = "file://" + vectorFile
+        
+        xhr.open("GET", fileUrl)
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status === 0 || xhr.status === 200) {
+                    if (xhr.responseText !== "") {
+                        try {
+                            var data = JSON.parse(xhr.responseText)
+                            var newVectors = []
+                            
+                            // Check if data has vectors array
+                            if (data.vectors && Array.isArray(data.vectors)) {
+                                // Create a deep copy to force property change
+                                for (var i = 0; i < data.vectors.length; i++) {
+                                    newVectors.push({
+                                        x: parseFloat(data.vectors[i]. x) || 0,
+                                        y: parseFloat(data.vectors[i].y) || 0,
+                                        name: data.vectors[i].name || "Unknown",
+                                        magnitude: parseFloat(data.vectors[i].magnitude) || 0
+                                    })
+                                }
+                            } else if (data.vector) {
+                                // Single vector format
+                                newVectors = [{
+                                    x: parseFloat(data.vector.x) || 0,
+                                    y: parseFloat(data.vector. y) || 0,
+                                    name: data.vector. name || "Vector",
+                                    magnitude: parseFloat(data.vector.magnitude) || 0
+                                }]
+                            }
+                            
+                            // Force property change by assigning new array
+                            vectors = newVectors
+                            
+                            // Log to SDDM logs (view with:  journalctl -u sddm)
+                            console.log("MagnusLock: Updated vectors:", vectors. length, "vectors read")
+                            
+                            // Optional: Log full data for debugging
+                            // console.log("MagnusLock: Vector data:", JSON.stringify(vectors))
+                            
+                        } catch (e) {
+                            console.log("MagnusLock: JSON parse error:", e)
+                        }
+                    } else {
+                        console.log("MagnusLock: Empty file")
+                    }
+                } else {
+                    console.log("MagnusLock: File read failed with status:", xhr.status)
+                }
+            }
+        }
+        
+        xhr. send()
     }
 
     Item {
@@ -493,25 +589,63 @@ Item {
 
     Rectangle {
         id: centerCircle
-        width: 450                     // Circle diameter
-        height: 450
+        width: 460                     // Circle diameter
+        height: 460
         radius: width / 2              // Makes it circular (half the width)
         color: '#000000'
-        border.color: "#32792a"        // Border color
         border.width: 5                // Border thickness
         
         anchors.centerIn: parent       // Centers it on screen
         
-        // Optional: Add transparency
-        // opacity: 0.8                   // 0.0 = invisible, 1.0 = solid
+        border.color: {
+            if (closestVector === null) {
+            return "#95a5a6"  // Grey - no faces detected
+            } else if (closestVector.name === "Known") {
+                return "#109304"  // Green - known face
+            } else {
+                return "#e74c3c"  // Red - unknown face
+            }
+        }
         
+        Behavior on border.color {
+            ColorAnimation {
+                duration: 300
+                easing.type: Easing.InOutQuad
+            }
+        }
+
         Image {
             id: magnusEye
-            source: "eyes/magnuseye_red.svg"  // Local file or URL
-            rotation: 0  // Degrees
-            width: 189
-            height: 110
-            anchors.centerIn: parent
+            source: "eyes/magnuseye.png"
+            height: 189
+            
+            // Force width to not preserve aspect ratio
+            fillMode: Image.Stretch  // Add this line
+            
+            width: root.closestVector ? ((Math.cos(root.closestVector.magnitude * Math.PI / 100)/2) + 0.5) * 189 : 0
+
+            // Safer rotation binding
+            rotation: {
+                if (root.closestVector && 
+                    root.closestVector. hasOwnProperty('x') && 
+                    root.closestVector. hasOwnProperty('y')) {
+                    return Math.atan2(root. closestVector.y, root. closestVector.x) * 180 / Math.PI
+                }
+                return 0
+            }
+            
+            x: (parent.width / 2) - (root.closestVector ?  root.closestVector.x * 2.3 :  0) - (width / 2)
+            y: (parent.height / 2) - (root.closestVector ?  root.closestVector.y * 2.3 :  0) - (height / 2)
+            
+            Behavior on x {
+                NumberAnimation { duration: 200 }
+            }
+            Behavior on y {
+                NumberAnimation { duration: 200 }
+            }
+            Behavior on width {
+                NumberAnimation { duration: 200 }
+            }
         }
     }
 }

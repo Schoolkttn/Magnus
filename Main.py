@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 from systemd import journal
 import logging
+import math
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -14,8 +15,9 @@ logger.addHandler(journal.JournaldLogHandler())
 
 def initialize_vector_writer():
     """Initialize and return the vector writer."""
-    output_file = "/home/Add_Later/.local/share/vector_data/vector.json"
-    return VectorWriter(output_file)
+    output_file1 = "/home/Add_Later/.local/share/vector_data/vector.json"
+    output_file2 = "/tmp/vector.json"
+    return VectorWriter(output_file1), VectorWriter(output_file2)
     
 
 def load_known_faces():
@@ -98,13 +100,17 @@ def capture_and_recognize_faces(video_capture, known_face_encodings, known_face_
         face_center_y = (top + bottom) / 2
         
         # Calculate vector from frame center to face center
-        vector_x = face_center_x - frame_center_x
-        vector_y = frame_center_y - face_center_y
+        vector_x = (face_center_x - frame_center_x) * 100 / (frame_center_x)
+        vector_y = (frame_center_y - face_center_y) * 100 / (frame_center_y)
+        magnitude = math.sqrt((vector_x ** 2) + (vector_y ** 2))
+        angle = math.atan2(vector_y, vector_x) * 180 / math.pi
         
         vectors.append({
             'name': name,
             'x': vector_x,
             'y': vector_y,
+            'magnitude': magnitude,
+            'angle': angle
         })
     
     return frame, face_locations, face_names, vectors
@@ -117,7 +123,7 @@ def cleanup_camera(video_capture):
 def main():
     """Main function demonstrating usage of the face recognition functions."""
     # Initialize components
-    vector_writer = initialize_vector_writer()
+    vector_writer_1, vector_writer_2 = initialize_vector_writer()
     known_face_encodings, known_face_names = load_known_faces()
     video_capture, frame_center_x, frame_center_y = initialize_camera()
     
@@ -136,7 +142,11 @@ def main():
             
             # Write vectors to file if needed
             if vectors:
-                vector_writer.write_vectors(vectors)
+                vector_writer_1.write_vectors(vectors)
+                vector_writer_2.write_vectors(vectors)
+            else:
+                vector_writer_1.write_empty()
+                vector_writer_2.write_empty()
         
     finally:
         cleanup_camera(video_capture)

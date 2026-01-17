@@ -4,10 +4,6 @@ import numpy as np
 from vector import VectorWriter
 import os
 
-# Initialize vector writer
-output_file = os.path.expanduser("~/.local/share/vector_data/vector.json")
-vector_writer = VectorWriter(output_file)
-
 # Get a reference to webcam #0 (the default one)
 video_capture = cv2.VideoCapture(0)
 
@@ -87,8 +83,8 @@ while True:
         face_center_y = (top + bottom) / 2
 
         # Calculate vector from frame center to face center
-        vector_x = frame_center_x - face_center_x
-        vector_y = frame_center_y - face_center_y
+        vector_x = (face_center_x - frame_center_x) * 100 / (frame_center_x)
+        vector_y = (frame_center_y - face_center_y) * 100 / (frame_center_y)
 
         # Calculate magnitude (distance)
         magnitude = np.sqrt(vector_x**2 + vector_y**2)
@@ -105,7 +101,7 @@ while True:
         print(f"Face '{name}' detected:")
         print(f"  Position: ({face_center_x:.1f}, {face_center_y:.1f})")
         print(f"  Vector from center: ({vector_x:.1f}, {vector_y:.1f})")
-        print(f"  Center: ({frame_center_x:.1f}, {frame_center_y:.1f})")
+        print(f"  Frame size & center: ({frame_width:.1f}, {frame_height:.1f}), ({frame_center_x:.1f}, {frame_center_y:.1f})")
         print(f"  Distance from center: {magnitude:.1f} pixels")
         print()
         # Draw a box around the face
@@ -115,10 +111,6 @@ while True:
         cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
         cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
-    
-    # Write all vectors to JSON file
-    if vectors:
-        vector_writer.write_vectors(vectors)
 
     # Display the resulting image
     cv2.imshow('Video', frame)
